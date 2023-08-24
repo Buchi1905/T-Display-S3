@@ -6,17 +6,17 @@
 #include "Wire.h"
 #include "img_logo.h"
 #include "pin_config.h"
+#include <lvgl.h>
+#include "ScreenBrightness.h"
 
 TouchLib touch(Wire, PIN_IIC_SDA, PIN_IIC_SCL, CTS820_SLAVE_ADDRESS, PIN_TOUCH_RES);
-
-
 
 TFT_eSPI tft = TFT_eSPI();
 bool flags_sleep = false;
 
 OneButton button(PIN_BUTTON_1, true);
 
-void setup()
+void setupGpios()
 {
     gpio_hold_dis((gpio_num_t)PIN_TOUCH_RES);
 
@@ -27,20 +27,17 @@ void setup()
     digitalWrite(PIN_TOUCH_RES, LOW);
     delay(500);
     digitalWrite(PIN_TOUCH_RES, HIGH);
+}
+
+void setup()
+{
+    setupGpios();
 
     Serial.begin(115200);
     Serial.println("Hello T-Display-S3");
 
     tft.begin();
-
     tft.setRotation(3);
-    tft.pushImage(0, 0, 320, 170, (uint16_t *)img_logo);
-
-    ledcSetup(0, 2000, 8);
-    ledcAttachPin(PIN_LCD_BL, 0);
-    ledcWrite(0, 255);
-
-    delay(2000);
     tft.setTextSize(2);
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -51,9 +48,9 @@ void setup()
     }
 
     button.attachClick([] { flags_sleep = 1; });
-    tft.drawString("Press the BOT button to go", 0, 15);
-    tft.drawString(" to sleep", 0, 40);
 
+    ScreenBrightness_Init();
+    ScreenBrightness_Set(100);
 }
 
 void loop()
@@ -79,6 +76,7 @@ void loop()
     }
 
     button.tick();
+
     if (flags_sleep) {
         flags_sleep = false;
         tft.fillScreen(TFT_BLACK);
