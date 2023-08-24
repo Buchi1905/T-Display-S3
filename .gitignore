@@ -54,3 +54,4 @@ Mkfile.old
 dkms.conf
 build
 script
+.pio

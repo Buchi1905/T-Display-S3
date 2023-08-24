@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pin_config.h"
 #include "esp32-hal.h"
 

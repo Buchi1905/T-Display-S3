@@ -8,8 +8,14 @@
 #include "pin_config.h"
 #include <lvgl.h>
 #include "ScreenBrightness.h"
+#include <WiFi.h>
+#include <HttpClient.h>
+#include <EasyHA.h>
+#include "secrets.h"
 
 TouchLib touch(Wire, PIN_IIC_SDA, PIN_IIC_SCL, CTS820_SLAVE_ADDRESS, PIN_TOUCH_RES);
+
+EasyHA easyHA(HA_BASE_URL,HA_TOKEN);
 
 TFT_eSPI tft = TFT_eSPI();
 bool flags_sleep = false;
@@ -51,10 +57,24 @@ void setup()
 
     ScreenBrightness_Init();
     ScreenBrightness_Set(100);
+
+    tft.drawString("Connecting WiFi", 15, 15);
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi ...");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+    }
+    
+    tft.drawString(WiFi.localIP().toString(), 15, 40);
+    delay(1500);
 }
 
 void loop()
 {
+    static uint16_t loopCnt = 5000;
+
     char str_buf[100];
     static uint8_t last_finger;
 
@@ -72,7 +92,7 @@ void loop()
         }
         last_finger = n;
     } else {
-        tft.fillScreen(TFT_BLACK);
+        //tft.fillScreen(TFT_BLACK);
     }
 
     button.tick();
@@ -89,4 +109,14 @@ void loop()
         esp_deep_sleep_start();
     }
     delay(1);
+
+    loopCnt--;
+    if(loopCnt == 0)
+    {
+        tft.fillScreen(TFT_BLACK);
+        Serial.print("Reading from HA\n");
+        loopCnt = 5000;
+        SensorStruct values = easyHA.readSensorValue("shellyplugburobenschreibtisch_power");
+        tft.drawString(values.state, 15, 40);
+    }
 }
